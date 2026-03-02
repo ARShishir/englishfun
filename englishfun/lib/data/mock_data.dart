@@ -1,0 +1,203 @@
+import 'package:englishfun/models/vocabulary_model.dart';
+import 'package:englishfun/models/practice_model.dart';
+import 'package:englishfun/models/onboarding_model.dart';
+import 'package:englishfun/models/user_model.dart';
+
+class MockData {
+  static final UserModel currentUser = UserModel(
+    id: '1',
+    name: 'Shishir',
+    email: 'shishir@example.com',
+    avatar: '👤',
+    totalWordsLearned: 120,
+    dailyStreak: 7,
+    accuracy: 82.0,
+    totalXP: 320,
+  );
+
+  static final List<VocabularyModel> vocabularyList = [
+    VocabularyModel(
+      id: '1',
+      word: 'Improve',
+      partOfSpeech: 'Verb',
+      meaning: 'To make or become better',
+      bangla: 'উন্নত করা',
+      synonyms: ['Enhance', 'Develop', 'Better'],
+      examples: ['I want to improve my English.', 'The weather improved yesterday.'],
+      level: 'Beginner',
+    ),
+    VocabularyModel(
+      id: '2',
+      word: 'Persistent',
+      partOfSpeech: 'Adjective',
+      meaning: 'Continuing firmly or obstinately',
+      bangla: 'অধ্যবসায়ী',
+      synonyms: ['Determined', 'Steadfast', 'Dedicated'],
+      examples: ['He is persistent in his efforts.'],
+      level: 'Intermediate',
+    ),
+    VocabularyModel(
+      id: '3',
+      word: 'Eloquent',
+      partOfSpeech: 'Adjective',
+      meaning: 'Fluent and expressive in speaking or writing',
+      bangla: 'বাকপটু',
+      synonyms: ['Articulate', 'Fluent', 'Expressive'],
+      examples: ['She gave an eloquent speech at the conference.'],
+      level: 'Intermediate',
+    ),
+    VocabularyModel(
+      id: '4',
+      word: 'Anticipate',
+      partOfSpeech: 'Verb',
+      meaning: 'To regard as probable; expect',
+      bangla: 'প্রত্যাশা করা',
+      synonyms: ['Expect', 'Foresee', 'Predict'],
+      examples: ['I anticipate your arrival tomorrow.'],
+      level: 'Beginner',
+    ),
+    VocabularyModel(
+      id: '5',
+      word: 'Meticulous',
+      partOfSpeech: 'Adjective',
+      meaning: 'Showing great attention to deails',
+      bangla: 'যত্নশীল',
+      synonyms: ['Careful', 'Precise', 'Thorough'],
+      examples: ['She is meticulous in her work.'],
+      level: 'Intermediate',
+    ),
+    VocabularyModel(
+      id: '6',
+      word: 'Benevolent',
+      partOfSpeech: 'Adjective',
+      meaning: 'Kind and generous',
+      bangla: 'দাতব্য',
+      synonyms: ['Kind', 'Generous', 'Charitable'],
+      examples: ['A benevolent donor helped the charity.'],
+      level: 'Intermediate',
+    ),
+    VocabularyModel(
+      id: '7',
+      word: 'Pragmatic',
+      partOfSpeech: 'Adjective',
+      meaning: 'Dealing with things in a realistic way based on practical consequences',
+      bangla: 'বাস্তবসম্মত',
+      synonyms: ['Practical', 'Realistic', 'Sensible'],
+      examples: ['She took a pragmatic approach to the problem.'],
+      level: 'Intermediate',
+    ),
+    VocabularyModel(
+      id: '8',
+      word: 'Resilient',
+      partOfSpeech: 'Adjective',
+      meaning: 'Able to recover quickly from difficulties',
+      bangla: 'স্থিতিস্থাপক',
+      synonyms: ['Strong', 'Tough', 'Flexible'],
+      examples: ['He proved to be resilient during hard times.'],
+      level: 'Beginner',
+    ),
+    VocabularyModel(
+      id: '9',
+      word: 'Lucid',
+      partOfSpeech: 'Adjective',
+      meaning: 'Clear and easy to understand',
+      bangla: 'স্পষ্ট',
+      synonyms: ['Clear', 'Understandable', 'Transparent'],
+      examples: ['The teacher gave a lucid explanation.'],
+      level: 'Intermediate',
+    ),
+    VocabularyModel(
+      id: '10',
+      word: 'Ephemeral',
+      partOfSpeech: 'Adjective',
+      meaning: 'Lasting for a very short time',
+      bangla: 'ক্ষণস্থায়ী',
+      synonyms: ['Transient', 'Fleeting', 'Temporary'],
+      examples: ['Beauty can be ephemeral.'],
+      level: 'Intermediate',
+    ),
+  ];
+
+  static final List<PracticeQuestion> practiceQuestions = [
+    PracticeQuestion(
+      id: '1',
+      type: PracticeType.sentenceArrangement,
+      question: 'Arrange the words to form a correct sentence:',
+      options: ['tomorrow', 'finish', 'report', 'by', 'have to', 'I'],
+      correctAnswer: 'I have to finish the report by tomorrow',
+      explanation: 'Subject + verb + object + time expression',
+    ),
+    PracticeQuestion(
+      id: '2',
+      type: PracticeType.fillBlank,
+      question: 'I _____ to the store yesterday.',
+      options: ['go', 'went', 'going', 'goes'],
+      correctAnswer: 'went',
+      explanation: 'Past tense is needed for "yesterday"',
+    ),
+    PracticeQuestion(
+      id: '3',
+      type: PracticeType.spelling,
+      question: 'Which is the correct spelling?',
+      options: ['Recieve', 'Receive', 'Recive', 'Receeve'],
+      correctAnswer: 'Receive',
+      explanation: '"i" before "e" except after "c"',
+    ),
+    PracticeQuestion(
+      id: '4',
+      type: PracticeType.fillBlank,
+      question: 'She _____ speak three languages.',
+      options: ['can', 'could', 'will', 'should'],
+      correctAnswer: 'can',
+      explanation: 'Present ability is expressed with "can"',
+    ),
+    PracticeQuestion(
+      id: '5',
+      type: PracticeType.sentenceArrangement,
+      question: 'Arrange the words to form a question:',
+      options: ['does', 'work', 'he', 'where'],
+      correctAnswer: 'Where does he work?',
+      explanation: 'Question word + auxiliary + subject + main verb',
+    ),
+  ];
+
+  static final List<OnboardingPage> onboardingPages = [
+    OnboardingPage(
+      id: 1,
+      title: 'Learn English Daily',
+      description: 'Practice English every day with fun and engaging exercises.',
+      icon: '📚',
+    ),
+    OnboardingPage(
+      id: 2,
+      title: 'Track Your Progress',
+      description: 'Monitor your learning journey with detailed progress charts.',
+      icon: '📊',
+    ),
+    OnboardingPage(
+      id: 3,
+      title: 'Achieve Your Goals',
+      description: 'Earn badges and maintain your learning streak.',
+      icon: '🏆',
+    ),
+  ];
+
+  static final List<Map<String, dynamic>> weeklyProgressData = [
+    {'day': 'Mon', 'xp': 45},
+    {'day': 'Tue', 'xp': 60},
+    {'day': 'Wed', 'xp': 50},
+    {'day': 'Thu', 'xp': 70},
+    {'day': 'Fri', 'xp': 55},
+    {'day': 'Sat', 'xp': 80},
+    {'day': 'Sun', 'xp': 65},
+  ];
+
+  static final List<String> achievements = [
+    '🔥 7-Day Streak',
+    '⭐ 100 Words Learned',
+    '🎯 Perfect Quiz',
+    '💯 100% Accuracy',
+    '🚀 First Practice',
+    '🏅 500 XP Earned',
+  ];
+}
