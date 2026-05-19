@@ -1,36 +1,30 @@
-// ignore_for_file: use_super_parameters, prefer_const_constructors
+// ignore_for_file: use_super_parameters, prefer_const_constructors, use_key_in_widget_constructors, deprecated_member_use, avoid_print
 
 import 'package:flutter/material.dart';
-import 'package:englishfun/data/mock_data.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:englishfun/navigation/app_router.dart';
 import 'package:englishfun/core/widgets/custom_widgets.dart';
 import 'package:englishfun/core/theme/app_theme.dart';
 import 'package:englishfun/core/constants/app_constants.dart';
+import 'package:englishfun/services/auth_provider.dart';
 
-class PracticeScreen extends StatefulWidget {
+class PracticeScreen extends ConsumerStatefulWidget {
   const PracticeScreen({Key? key}) : super(key: key);
 
   @override
-  State<PracticeScreen> createState() => _PracticeScreenState();
+  ConsumerState<PracticeScreen> createState() => _PracticeScreenState();
 }
 
-class _PracticeScreenState extends State<PracticeScreen> {
+class _PracticeScreenState extends ConsumerState<PracticeScreen> {
   int _currentQuestionIndex = 0;
   List<String> selectedAnswers = [];
   bool _showFeedback = false;
   bool _isCorrect = false;
 
   @override
-  void initState() {
-    super.initState();
-    selectedAnswers = List.filled(MockData.practiceQuestions.length, '');
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final question = MockData.practiceQuestions[_currentQuestionIndex];
-    final progress = (_currentQuestionIndex + 1) / MockData.practiceQuestions.length;
+    final questions = ref.watch(practiceQuestionsProvider({}));
 
     return Scaffold(
       appBar: AppBar(
@@ -40,218 +34,227 @@ class _PracticeScreenState extends State<PracticeScreen> {
           onPressed: () => context.go(AppRouter.home),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppConstants.spacing16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Progress
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '${_currentQuestionIndex + 1}/${MockData.practiceQuestions.length}',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                Text(
-                  '⏱️ 02:45',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ProgressBar(
-              progress: progress,
-              progressColor: AppColors.primary,
-            ),
-            const SizedBox(height: 32),
+      body: questions.when(
+        data: (questionList) {
+          if (questionList.isEmpty) {
+            return Center(child: Text('No practice questions available'));
+          }
 
-            // Question
-            CustomCard(
-              backgroundColor: Color(0xFFF5F7FA),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    question.question,
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 20),
-                  if (question.type.name == 'sentenceArrangement')
-                    _buildSentenceArrangement(question)
-                  else if (question.type.name == 'fillBlank')
-                    _buildFillBlank(question)
-                  else
-                    _buildSpellingTest(question),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
+          selectedAnswers = List.filled(questionList.length, selectedAnswers.elementAtOrNull(_currentQuestionIndex) ?? '');
 
-            // Feedback
-            if (_showFeedback)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: _isCorrect ? Colors.green[50] : Colors.red[50],
-                  border: Border.all(
-                    color: _isCorrect ? Colors.green : Colors.red,
-                  ),
-                  borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _isCorrect ? '✅ Correct!' : '❌ Incorrect',
-                      style: TextStyle(
-                        color: _isCorrect ? Colors.green : Colors.red,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      question.explanation,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
+          final question = questionList[_currentQuestionIndex];
+          final progress = (_currentQuestionIndex + 1) / questionList.length;
 
-            const SizedBox(height: 24),
-
-            // Next Button
-            RoundedButton(
-              label: _currentQuestionIndex < MockData.practiceQuestions.length - 1
-                  ? 'Next'
-                  : 'Complete',
-              onPressed: () {
-                if (!_showFeedback) {
-                  setState(() {
-                    _showFeedback = true;
-                    _isCorrect = selectedAnswers[_currentQuestionIndex]
-                        .contains(question.correctAnswer);
-                  });
-                } else {
-                  if (_currentQuestionIndex <
-                      MockData.practiceQuestions.length - 1) {
-                    setState(() {
-                      _currentQuestionIndex++;
-                      _showFeedback = false;
-                    });
-                  } else {
-                    _showCompletionDialog();
-                  }
-                }
-              },
-            ),
-          ],
-        ),
+          return _buildPracticeContent(context, question, progress, questionList.length);
+        },
+        loading: () => Center(child: CircularProgressIndicator()),
+        error: (err, st) {
+          print('Error: $err');
+          return Center(child: Text('Error loading practice questions'));
+        },
       ),
     );
   }
 
-  Widget _buildSentenceArrangement(dynamic question) {
-    return Column(
-      children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: question.options.map<Widget>((option) {
-            final isSelected = selectedAnswers[_currentQuestionIndex]
-                .contains(option);
-            return WordChip(
-              label: option,
-              isSelected: isSelected,
-              onTap: () {
-                setState(() {
-                  if (isSelected) {
-                    selectedAnswers[_currentQuestionIndex] =
-                        selectedAnswers[_currentQuestionIndex]
-                            .replaceAll('$option ', '');
-                  } else {
-                    selectedAnswers[_currentQuestionIndex] +=
-                        '${selectedAnswers[_currentQuestionIndex].isEmpty ? '' : ' '}$option';
-                  }
-                });
-              },
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.divider),
-            borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
+  Widget _buildPracticeContent(BuildContext context, question, double progress, int totalQuestions) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppConstants.spacing16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${_currentQuestionIndex + 1}/$totalQuestions',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ],
           ),
-          child: Text(
-            selectedAnswers[_currentQuestionIndex].isNotEmpty
-                ? selectedAnswers[_currentQuestionIndex]
-                : 'Your answer will appear here',
-            style: Theme.of(context).textTheme.bodyMedium,
+          const SizedBox(height: 12),
+          ProgressBar(
+            progress: progress,
+            progressColor: AppColors.primary,
           ),
-        ),
-      ],
-    );
-  }
+          const SizedBox(height: 32),
 
-  Widget _buildFillBlank(dynamic question) {
-    return Column(
-      children: question.options.map<Widget>((option) {
-        final isSelected = selectedAnswers[_currentQuestionIndex] == option;
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: WordChip(
-            label: option,
-            isSelected: isSelected,
-            onTap: () {
-              setState(() {
-                selectedAnswers[_currentQuestionIndex] = option;
-              });
-            },
+          // Question
+          CustomCard(
+            backgroundColor: Color(0xFFF5F7FA),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  question['question_text'] ?? 'Question',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 20),
+                _buildMultipleChoice(question),
+              ],
+            ),
           ),
-        );
-      }).toList(),
-    );
-  }
+          const SizedBox(height: 32),
 
-  Widget _buildSpellingTest(dynamic question) {
-    return Column(
-      children: question.options.map<Widget>((option) {
-        final isSelected = selectedAnswers[_currentQuestionIndex] == option;
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: WordChip(
-            label: option,
-            isSelected: isSelected,
-            onTap: () {
-              setState(() {
-                selectedAnswers[_currentQuestionIndex] = option;
-              });
-            },
-          ),
-        );
-      }).toList(),
-    );
-  }
+          if (_showFeedback)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _isCorrect ? Colors.green[50] : Colors.red[50],
+                border: Border.all(
+                  color: _isCorrect ? Colors.green : Colors.red,
+                ),
+                borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
+              ),
+              child: Text(
+                _isCorrect ? '✓ Correct!' : '✗ Incorrect. Try again!',
+                style: TextStyle(
+                  color: _isCorrect ? Colors.green : Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          const SizedBox(height: 24),
 
-  void _showCompletionDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Great Job! 🎉'),
-        content: const Text('You have completed today\'s practice!'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // close dialog
-              context.go(AppRouter.home); // navigate to home
-            },
-            child: const Text('Back to Home'),
+          Row(
+            children: [
+              if (_currentQuestionIndex > 0)
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _previousQuestion,
+                    icon: Icon(Icons.arrow_back),
+                    label: Text('Previous'),
+                  ),
+                ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _nextQuestion,
+                  icon: Icon(_currentQuestionIndex == 0 ? Icons.arrow_forward : Icons.check),
+                  label: Text(_currentQuestionIndex == 0 ? 'Next' : 'Submit'),
+                ),
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMultipleChoice(question) {
+    final options = question['options'] as List<dynamic>? ?? [];
+    final correctAnswer = question['correct_answer'] ?? '';
+
+    return Column(
+      children: options.asMap().entries.map((entry) {
+        final option = entry.value;
+        final isSelected = selectedAnswers[_currentQuestionIndex] == option;
+        final isCorrect = option == correctAnswer;
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                selectedAnswers[_currentQuestionIndex] = option;
+                _isCorrect = option == correctAnswer;
+                _showFeedback = true;
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _showFeedback && isCorrect
+                    ? Colors.green[100]
+                    : _showFeedback && isSelected && !isCorrect
+                        ? Colors.red[100]
+                        : isSelected
+                            ? AppColors.primary.withOpacity(0.1)
+                            : Colors.grey[100],
+                border: Border.all(
+                  color: _showFeedback && isCorrect
+                      ? Colors.green
+                      : _showFeedback && isSelected && !isCorrect
+                          ? Colors.red
+                          : isSelected
+                              ? AppColors.primary
+                              : Colors.grey[300]!,
+                  width: isSelected ? 2 : 1,
+                ),
+                borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSelected ? AppColors.primary : Colors.grey,
+                      ),
+                      color: isSelected ? AppColors.primary : Colors.transparent,
+                    ),
+                    child: isSelected
+                        ? Icon(Icons.check, color: Colors.white, size: 16)
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      option.toString(),
+                      style: TextStyle(
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                  ),
+                  if (_showFeedback && isCorrect)
+                    Icon(Icons.check_circle, color: Colors.green),
+                  if (_showFeedback && isSelected && !isCorrect)
+                    Icon(Icons.cancel, color: Colors.red),
+                ],
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  void _previousQuestion() {
+    setState(() {
+      _showFeedback = false;
+      _isCorrect = false;
+      _currentQuestionIndex--;
+    });
+  }
+
+  void _nextQuestion() {
+    setState(() {
+      _showFeedback = false;
+      _isCorrect = false;
+      _currentQuestionIndex++;
+    });
+  }
+}
+
+class ProgressBar extends StatelessWidget {
+  final double progress;
+  final Color progressColor;
+
+  const ProgressBar({
+    required this.progress,
+    required this.progressColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
+      child: LinearProgressIndicator(
+        value: progress,
+        minHeight: 8,
+        backgroundColor: Colors.grey[300],
+        valueColor: AlwaysStoppedAnimation(progressColor),
       ),
     );
   }

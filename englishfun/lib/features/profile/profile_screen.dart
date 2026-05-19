@@ -1,26 +1,27 @@
-// ignore_for_file: use_super_parameters
+// ignore_for_file: use_super_parameters, prefer_const_constructors, avoid_print, prefer_const_literals_to_create_immutables
 
 import 'package:flutter/material.dart';
-import 'package:englishfun/data/mock_data.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:englishfun/navigation/app_router.dart';
 import 'package:englishfun/core/widgets/custom_widgets.dart';
 import 'package:englishfun/core/theme/app_theme.dart';
 import 'package:englishfun/core/constants/app_constants.dart';
+import 'package:englishfun/services/auth_provider.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _isDarkMode = false;
 
   @override
   Widget build(BuildContext context) {
-    final user = MockData.currentUser;
+    final userProfile = ref.watch(userProfileProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -30,201 +31,136 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onPressed: () => context.go(AppRouter.home),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppConstants.spacing16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Avatar
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.primary,
-                border: Border.all(
-                  color: AppColors.accent,
-                  width: 3,
-                ),
-              ),
-              child: const Center(
-                child: Text('👤', style: TextStyle(fontSize: 48)),
-              ),
-            ),
-            const SizedBox(height: 16),
+      body: userProfile.when(
+        data: (user) {
+          if (user == null) {
+            return Center(child: Text('User not found'));
+          }
+          return _buildProfileContent(context, user);
+        },
+        loading: () => Center(child: CircularProgressIndicator()),
+        error: (err, st) {
+          print('Error: $err');
+          return Center(child: Text('Error loading profile'));
+        },
+      ),
+    );
+  }
 
-            // Name
-            Text(
-              user.name,
-              style: Theme.of(context).textTheme.displayMedium,
+  Widget _buildProfileContent(BuildContext context, user) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppConstants.spacing16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Avatar
+          Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.primary,
+              border: Border.all(
+                color: AppColors.accent,
+                width: 3,
+              ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              user.email,
-              style: Theme.of(context).textTheme.bodyMedium,
+            child: const Center(
+              child: Text('👤', style: TextStyle(fontSize: 48)),
             ),
-            const SizedBox(height: 32),
+          ),
+          const SizedBox(height: 16),
 
-            // Stats Grid
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
+          // Name
+          Text(
+            user.name,
+            style: Theme.of(context).textTheme.displayMedium,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            user.email,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 32),
+
+          // Stats Grid
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 16,
+            crossAxisSpacing: 16,
+            children: [
+              _StatCard(
+                icon: '📚',
+                label: 'Words Learned',
+                value: '${user.totalWordsLearned}',
+              ),
+              _StatCard(
+                icon: '🔥',
+                label: 'Daily Streak',
+                value: '${user.dailyStreak}',
+              ),
+              _StatCard(
+                icon: '🎯',
+                label: 'Accuracy',
+                value: '${user.accuracy.toStringAsFixed(0)}%',
+              ),
+              _StatCard(
+                icon: '⭐',
+                label: 'Total XP',
+                value: '${user.totalXP}',
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
+
+          // Settings
+          Text(
+            'Settings',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 16),
+          CustomCard(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _StatCard(
-                  icon: '📚',
-                  label: AppStrings.totalWordsLearned,
-                  value: '${user.totalWordsLearned}',
+                Row(
+                  children: [
+                    const Icon(Icons.dark_mode),
+                    const SizedBox(width: 12),
+                    const Text('Dark Mode'),
+                  ],
                 ),
-                _StatCard(
-                  icon: '🔥',
-                  label: AppStrings.dailyStreak,
-                  value: '${user.dailyStreak}',
-                ),
-                _StatCard(
-                  icon: '🎯',
-                  label: AppStrings.accuracy,
-                  value: '${user.accuracy.toStringAsFixed(0)}%',
-                ),
-                _StatCard(
-                  icon: '⭐',
-                  label: 'Total XP',
-                  value: '${user.totalXP}',
+                Switch(
+                  value: _isDarkMode,
+                  onChanged: (value) {
+                    setState(() => _isDarkMode = value);
+                  },
                 ),
               ],
             ),
-            const SizedBox(height: 32),
+          ),
+          const SizedBox(height: 32),
 
-            // Weekly Progress
-            Text(
-              AppStrings.weeklyProgress,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
-            CustomCard(
-              child: SizedBox(
-                height: 200,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'XP Earned This Week',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    SizedBox(
-                      height: 150,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: MockData.weeklyProgressData.map((data) {
-                          final maxXP = MockData.weeklyProgressData
-                              .map((d) => d['xp'] as int)
-                              .reduce((a, b) => a > b ? a : b);
-                          final height =
-                              (data['xp'] as int) / maxXP * 100;
-                          return Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Container(
-                                width: 20,
-                                height: height,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                data['day'].toString(),
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                            ],
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ],
-                ),
+          // Logout
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                await ref.read(authControllerProvider.notifier).signOut();
+                if (context.mounted) {
+                  context.go('/login');
+                }
+              },
+              icon: const Icon(Icons.logout),
+              label: const Text('Logout'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
               ),
             ),
-            const SizedBox(height: 32),
-
-            // Achievements
-            Text(
-              AppStrings.achievements,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: MockData.achievements.map((achievement) {
-                return Container(
-                  width: 90,
-                  height: 90,
-                  decoration: BoxDecoration(
-                    borderRadius:
-                        BorderRadius.circular(AppConstants.radiusMedium),
-                    color: AppColors.background,
-                    border: Border.all(color: AppColors.divider),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        achievement.substring(0, 1),
-                        style: const TextStyle(fontSize: 32),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        achievement
-                            .substring(
-                              achievement.lastIndexOf(' ') + 1,
-                            )
-                            .substring(0, 3),
-                        style: const TextStyle(fontSize: 10),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 32),
-
-            // Dark Mode Toggle
-            CustomCard(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Dark Mode',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  Switch(
-                    value: _isDarkMode,
-                    onChanged: (value) {
-                      setState(() {
-                        _isDarkMode = value;
-                      });
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Logout Button
-            RoundedButton(
-              label: 'Logout',
-              backgroundColor: Colors.red,
-              onPressed: () {},
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

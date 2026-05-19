@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:englishfun/features/splash/splash_screen.dart';
 import 'package:englishfun/features/onboarding/onboarding_screen.dart';
 import 'package:englishfun/features/auth/login_screen.dart';
+import 'package:englishfun/features/auth/signup_screen.dart';
 import 'package:englishfun/features/home/home_screen.dart';
 import 'package:englishfun/features/practice/practice_screen.dart';
 import 'package:englishfun/features/vocabulary/vocabulary_list_screen.dart';
@@ -18,6 +19,7 @@ class AppRouter {
   static const String splash = '/';
   static const String onboarding = '/onboarding';
   static const String login = '/login';
+  static const String signup = '/signup';
   static const String home = '/home';
   static const String practice = '/practice';
   static const String vocabulary = '/vocabulary';
@@ -40,6 +42,10 @@ class AppRouter {
       GoRoute(
         path: login,
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: signup,
+        builder: (context, state) => const SignupScreen(),
       ),
 
       // Shell that holds the bottom navigation

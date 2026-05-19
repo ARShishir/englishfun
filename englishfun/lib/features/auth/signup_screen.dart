@@ -7,36 +7,59 @@ import 'package:englishfun/core/widgets/custom_widgets.dart';
 import 'package:englishfun/core/constants/app_constants.dart';
 import 'package:englishfun/services/auth_provider.dart';
 
-class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+class SignupScreen extends ConsumerStatefulWidget {
+  const SignupScreen({Key? key}) : super(key: key);
 
   @override
-  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _SignupScreenState extends ConsumerState<SignupScreen> {
+  late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _passwordController;
+  late TextEditingController _confirmPasswordController;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
+    _nameController = TextEditingController();
     _emailController = TextEditingController();
     _passwordController = TextEditingController();
+    _confirmPasswordController = TextEditingController();
   }
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  void _handleLogin() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+  void _handleSignup() async {
+    if (_nameController.text.isEmpty ||
+        _emailController.text.isEmpty ||
+        _passwordController.text.isEmpty ||
+        _confirmPasswordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
+      );
+      return;
+    }
+
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passwords do not match')),
+      );
+      return;
+    }
+
+    if (_passwordController.text.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password must be at least 6 characters')),
       );
       return;
     }
@@ -44,22 +67,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await ref.read(authControllerProvider.notifier).signIn(
+      await ref.read(authControllerProvider.notifier).signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text,
+        name: _nameController.text.trim(),
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Login successful!')),
+          const SnackBar(content: Text('Account created! Please login.')),
         );
-        context.go('/home');
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) context.go('/login');
+        });
       }
     } catch (e) {
       if (mounted) {
-        String errorMsg = 'Login failed';
-        if (e.toString().contains('Invalid login credentials')) {
-          errorMsg = 'Invalid email or password';
+        String errorMsg = 'Signup failed';
+        if (e.toString().contains('already registered')) {
+          errorMsg = 'Email already registered';
         }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(errorMsg)),
@@ -76,7 +102,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(AppStrings.loginWithEmail),
+        title: const Text('Create Account'),
         elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -91,6 +117,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
             const SizedBox(height: 32),
             CustomTextField(
+              label: 'Full Name',
+              hintText: 'Enter your full name',
+              controller: _nameController,
+              keyboardType: TextInputType.name,
+              prefixIcon: Icons.person,
+            ),
+            const SizedBox(height: 20),
+            CustomTextField(
               label: 'Email',
               hintText: 'Enter your email',
               controller: _emailController,
@@ -100,27 +134,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             const SizedBox(height: 20),
             CustomTextField(
               label: 'Password',
-              hintText: 'Enter your password',
+              hintText: 'Enter your password (min 6 characters)',
               controller: _passwordController,
+              obscureText: true,
+              prefixIcon: Icons.lock,
+            ),
+            const SizedBox(height: 20),
+            CustomTextField(
+              label: 'Confirm Password',
+              hintText: 'Confirm your password',
+              controller: _confirmPasswordController,
               obscureText: true,
               prefixIcon: Icons.lock,
             ),
             const SizedBox(height: 32),
             RoundedButton(
-              label: _isLoading ? 'Logging in...' : 'Login',
-              onPressed: _isLoading ? null : _handleLogin,
+              label: _isLoading ? 'Creating Account...' : 'Sign Up',
+              onPressed: _isLoading ? null : _handleSignup,
             ),
             const SizedBox(height: 16),
             Center(
               child: GestureDetector(
-                onTap: _isLoading ? null : () => context.go('/signup'),
+                onTap: _isLoading ? null : () => context.go('/login'),
                 child: RichText(
                   text: TextSpan(
-                    text: AppStrings.dontHaveAccount,
+                    text: 'Already have an account? ',
                     style: Theme.of(context).textTheme.bodyMedium,
                     children: [
                       TextSpan(
-                        text: AppStrings.signUp,
+                        text: 'Login',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: const Color(0xFF0D47A1),
                           fontWeight: FontWeight.bold,
@@ -137,4 +179,3 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 }
-

@@ -4,7 +4,7 @@ import 'package:englishfun/core/theme/app_theme.dart';
 import 'package:englishfun/core/constants/app_constants.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({Key? key}) : super(key: key);
+  const SplashScreen({super.key});
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();

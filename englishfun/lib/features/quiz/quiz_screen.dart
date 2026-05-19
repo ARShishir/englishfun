@@ -1,21 +1,22 @@
-// ignore_for_file: use_super_parameters, prefer_const_constructors
+// ignore_for_file: use_super_parameters, prefer_const_constructors, avoid_print, deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:englishfun/data/mock_data.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:englishfun/navigation/app_router.dart';
 import 'package:englishfun/core/widgets/custom_widgets.dart';
 import 'package:englishfun/core/theme/app_theme.dart';
 import 'package:englishfun/core/constants/app_constants.dart';
+import 'package:englishfun/services/auth_provider.dart';
 
-class QuizScreen extends StatefulWidget {
+class QuizScreen extends ConsumerStatefulWidget {
   const QuizScreen({Key? key}) : super(key: key);
 
   @override
-  State<QuizScreen> createState() => _QuizScreenState();
+  ConsumerState<QuizScreen> createState() => _QuizScreenState();
 }
 
-class _QuizScreenState extends State<QuizScreen> {
+class _QuizScreenState extends ConsumerState<QuizScreen> {
   int _currentQuestionIndex = 0;
   int _score = 0;
   String? _selectedAnswer;
@@ -23,9 +24,7 @@ class _QuizScreenState extends State<QuizScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final questions = MockData.practiceQuestions;
-    final currentQuestion = questions[_currentQuestionIndex];
-    final progress = (_currentQuestionIndex + 1) / questions.length;
+    final questions = ref.watch(practiceQuestionsProvider({'difficulty_level': 'Advanced'}));
 
     return Scaffold(
       appBar: AppBar(
@@ -35,196 +34,202 @@ class _QuizScreenState extends State<QuizScreen> {
           onPressed: () => context.go(AppRouter.home),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppConstants.spacing16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Progress Bar and Score
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '${_currentQuestionIndex + 1}/${questions.length}',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.success,
-                    borderRadius:
-                        BorderRadius.circular(AppConstants.radiusMedium),
-                  ),
-                  child: Text(
-                    'Score: $_score',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ProgressBar(
-              progress: progress,
-              progressColor: AppColors.primary,
-            ),
-            const SizedBox(height: 32),
+      body: questions.when(
+        data: (questionList) {
+          if (questionList.isEmpty) {
+            return Center(child: Text('No quiz questions available'));
+          }
 
-            // Question
-            CustomCard(
-              backgroundColor: Color(0xFFF5F7FA),
-              child: Text(
-                currentQuestion.question,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ),
-            const SizedBox(height: 24),
+          final currentQuestion = questionList[_currentQuestionIndex];
+          final progress = (_currentQuestionIndex + 1) / questionList.length;
 
-            // Options
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: currentQuestion.options.map((option) {
-                final isSelected = _selectedAnswer == option;
-                final isCorrect = option == currentQuestion.correctAnswer;
-
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: GestureDetector(
-                    onTap: _answered ? null : () {
-                      setState(() {
-                        _selectedAnswer = option;
-                        _answered = true;
-                        if (isCorrect) {
-                          _score++;
-                        }
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _answered
-                            ? (isCorrect
-                                ? Colors.green[50]
-                                : (isSelected ? Colors.red[50] : Colors.white))
-                            : (isSelected
-                                ? AppColors.primary.withValues(alpha: 0.1)
-                                : Colors.white),
-                        border: Border.all(
-                          color: _answered
-                              ? (isCorrect ? Colors.green : Colors.red)
-                              : (isSelected ? AppColors.primary : AppColors.divider),
-                          width: isSelected || (_answered && isCorrect) 
-                              ? 2 
-                              : 1,
-                        ),
-                        borderRadius:
-                            BorderRadius.circular(AppConstants.radiusSmall),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              option,
-                              style: Theme.of(context).textTheme.bodyLarge,
-                            ),
-                          ),
-                          if (_answered && isCorrect)
-                            const Icon(Icons.check_circle,
-                                color: Colors.green)
-                          else if (_answered && isSelected && !isCorrect)
-                            const Icon(Icons.cancel, color: Colors.red),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Next Button
-            if (_answered)
-              RoundedButton(
-                label: _currentQuestionIndex < questions.length - 1
-                    ? 'Next Question'
-                    : 'See Results',
-                onPressed: () {
-                  if (_currentQuestionIndex < questions.length - 1) {
-                    setState(() {
-                      _currentQuestionIndex++;
-                      _selectedAnswer = null;
-                      _answered = false;
-                    });
-                  } else {
-                    _showResultsDialog();
-                  }
-                },
-              )
-            else
-              RoundedButton(
-                label: 'Select an answer',
-                backgroundColor: Colors.grey,
-                onPressed: null,
-              ),
-          ],
-        ),
+          return _buildQuizContent(context, currentQuestion, progress, questionList.length);
+        },
+        loading: () => Center(child: CircularProgressIndicator()),
+        error: (err, st) {
+          print('Error: $err');
+          return Center(child: Text('Error loading quiz questions'));
+        },
       ),
     );
   }
 
-  void _showResultsDialog() {
-    final questions = MockData.practiceQuestions;
-    final percentage = ((_score / questions.length) * 100).toStringAsFixed(1);
+  Widget _buildQuizContent(BuildContext context, currentQuestion, double progress, int totalQuestions) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppConstants.spacing16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${_currentQuestionIndex + 1}/$totalQuestions',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              Text(
+                'Score: $_score',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          LinearProgressIndicator(
+            value: progress,
+            minHeight: 8,
+            backgroundColor: Colors.grey[300],
+            valueColor: AlwaysStoppedAnimation(AppColors.primary),
+          ),
+          const SizedBox(height: 32),
 
+          // Question
+          CustomCard(
+            backgroundColor: Color(0xFFF5F7FA),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  currentQuestion['question_text'] ?? 'Question',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 20),
+                _buildQuestionOptions(currentQuestion),
+              ],
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          // Submit Button
+          ElevatedButton.icon(
+            onPressed: _answered
+                ? () {
+                    if (_currentQuestionIndex < totalQuestions - 1) {
+                      setState(() {
+                        _currentQuestionIndex++;
+                        _selectedAnswer = null;
+                        _answered = false;
+                      });
+                    } else {
+                      _showQuizCompletion();
+                    }
+                  }
+                : () {
+                    setState(() => _answered = true);
+                    final isCorrect = _selectedAnswer == currentQuestion['correct_answer'];
+                    if (isCorrect) {
+                      setState(() => _score++);
+                    }
+                  },
+            icon: Icon(_answered ? Icons.arrow_forward : Icons.check),
+            label: Text(_answered
+                ? (_currentQuestionIndex == 9 ? 'Finish' : 'Next')
+                : 'Submit Answer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuestionOptions(currentQuestion) {
+    final options = currentQuestion['options'] as List<dynamic>? ?? [];
+    final correctAnswer = currentQuestion['correct_answer'] ?? '';
+
+    return Column(
+      children: options.asMap().entries.map((entry) {
+        final option = entry.value;
+        final isSelected = _selectedAnswer == option;
+        final isCorrect = option == correctAnswer;
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: GestureDetector(
+            onTap: _answered
+                ? null
+                : () => setState(() => _selectedAnswer = option),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? (_answered && isCorrect
+                        ? Colors.green[100]
+                        : _answered && !isCorrect
+                            ? Colors.red[100]
+                            : AppColors.primary.withOpacity(0.1))
+                    : (_answered && isCorrect
+                        ? Colors.green[100]
+                        : Colors.grey[100]),
+                border: Border.all(
+                  color: isSelected
+                      ? (_answered && isCorrect
+                          ? Colors.green
+                          : _answered && !isCorrect
+                              ? Colors.red
+                              : AppColors.primary)
+                      : (_answered && isCorrect
+                          ? Colors.green
+                          : Colors.grey[300]!),
+                  width: isSelected ? 2 : 1,
+                ),
+                borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSelected ? AppColors.primary : Colors.grey,
+                      ),
+                      color: isSelected ? AppColors.primary : Colors.transparent,
+                    ),
+                    child: isSelected
+                        ? Icon(Icons.check, color: Colors.white, size: 16)
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      option.toString(),
+                      style: TextStyle(
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                  ),
+                  if (_answered && isCorrect)
+                    Icon(Icons.check_circle, color: Colors.green),
+                  if (_answered && isSelected && !isCorrect)
+                    Icon(Icons.cancel, color: Colors.red),
+                ],
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  void _showQuizCompletion() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Quiz Completed! 🎉'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Score: $_score/${questions.length}',
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '$percentage%',
-              style: const TextStyle(fontSize: 20),
-            ),
-          ],
+        title: const Text('Quiz Complete! 🎉'),
+        content: Text(
+          'Your Score: $_score/10\n\n${(_score / 10 * 100).toStringAsFixed(0)}%',
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 18),
         ),
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop(); // close dialog
-              context.go(AppRouter.home); // navigate to home via router
-            },
-            child: const Text('Back'),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _currentQuestionIndex = 0;
-                _score = 0;
-                _selectedAnswer = null;
-                _answered = false;
-              });
               Navigator.of(context).pop();
+              context.go(AppRouter.home);
             },
-            child: const Text('Retake Quiz'),
+            child: const Text('Back to Home'),
           ),
         ],
       ),

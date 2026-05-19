@@ -1,20 +1,22 @@
-// ignore_for_file: use_super_parameters
+// ignore_for_file: use_super_parameters, prefer_const_constructors, avoid_print
 
 import 'package:flutter/material.dart';
-import 'package:englishfun/data/mock_data.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:englishfun/navigation/app_router.dart';
 import 'package:englishfun/core/widgets/custom_widgets.dart';
 import 'package:englishfun/core/constants/app_constants.dart';
+import 'package:englishfun/core/theme/app_theme.dart';
+import 'package:englishfun/services/auth_provider.dart';
 
-class FlashcardScreen extends StatefulWidget {
+class FlashcardScreen extends ConsumerStatefulWidget {
   const FlashcardScreen({Key? key}) : super(key: key);
 
   @override
-  State<FlashcardScreen> createState() => _FlashcardScreenState();
+  ConsumerState<FlashcardScreen> createState() => _FlashcardScreenState();
 }
 
-class _FlashcardScreenState extends State<FlashcardScreen>
+class _FlashcardScreenState extends ConsumerState<FlashcardScreen>
     with SingleTickerProviderStateMixin {
   late PageController _pageController;
   int _currentIndex = 0;
@@ -24,7 +26,6 @@ class _FlashcardScreenState extends State<FlashcardScreen>
   void initState() {
     super.initState();
     _pageController = PageController();
-    _isFlipped = List.filled(MockData.vocabularyList.length, false);
   }
 
   @override
@@ -35,6 +36,8 @@ class _FlashcardScreenState extends State<FlashcardScreen>
 
   @override
   Widget build(BuildContext context) {
+    final vocab = ref.watch(vocabularyProvider(null));
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Flashcard Mode'),
@@ -43,89 +46,127 @@ class _FlashcardScreenState extends State<FlashcardScreen>
           onPressed: () => context.go(AppRouter.home),
         ),
       ),
-      body: Column(
-        children: [
-          // Progress
-          Padding(
-            padding: const EdgeInsets.all(AppConstants.spacing16),
-            child: ProgressBar(
-              progress: (_currentIndex + 1) / MockData.vocabularyList.length,
-              label:
-                  'Card ${_currentIndex + 1} of ${MockData.vocabularyList.length}',
-            ),
-          ),
+      body: vocab.when(
+        data: (vocabList) {
+          if (vocabList.isEmpty) {
+            return Center(child: Text('No vocabulary available'));
+          }
 
-          // Flashcards
-          Expanded(
-            child: PageView.builder(
-              controller: _pageController,
-              onPageChanged: (index) {
-                setState(() {
-                  _currentIndex = index;
-                });
-              },
-              itemCount: MockData.vocabularyList.length,
-              itemBuilder: (context, index) {
-                final vocab = MockData.vocabularyList[index];
-                return FlashcardWidget(
-                  vocab: vocab,
-                  isFlipped: _isFlipped[index],
-                  onFlip: () {
-                    setState(() {
-                      _isFlipped[index] = !_isFlipped[index];
-                    });
-                  },
-                );
-              },
-            ),
-          ),
+          if (_isFlipped.length != vocabList.length) {
+            _isFlipped = List.filled(vocabList.length, false);
+          }
 
-          // Navigation Buttons
-          Padding(
-            padding: const EdgeInsets.all(AppConstants.spacing16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                RoundedButton(
-                  label: 'Previous',
-                  backgroundColor: Colors.grey,
-                  onPressed: _currentIndex > 0
-                      ? () {
-                          _pageController.previousPage(
-                            duration: AppConstants.mediumDuration,
-                            curve: Curves.easeInOut,
-                          );
-                        }
-                      : null,
-                ),
-                RoundedButton(
-                  label: 'Next',
-                  onPressed: _currentIndex < MockData.vocabularyList.length - 1
-                      ? () {
-                          _pageController.nextPage(
-                            duration: AppConstants.mediumDuration,
-                            curve: Curves.easeInOut,
-                          );
-                        }
-                      : null,
-                ),
-              ],
-            ),
-          ),
-        ],
+          return _buildFlashcardContent(context, vocabList);
+        },
+        loading: () => Center(child: CircularProgressIndicator()),
+        error: (err, st) {
+          print('Error: $err');
+          return Center(child: Text('Error loading vocabulary'));
+        },
       ),
+    );
+  }
+
+  Widget _buildFlashcardContent(BuildContext context, vocabList) {
+    return Column(
+      children: [
+        // Progress
+        Padding(
+          padding: const EdgeInsets.all(AppConstants.spacing16),
+          child: Column(
+            children: [
+              Text(
+                'Card ${_currentIndex + 1} of ${vocabList.length}',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 12),
+              LinearProgressIndicator(
+                value: (_currentIndex + 1) / vocabList.length,
+                minHeight: 8,
+                backgroundColor: Colors.grey[300],
+                valueColor: AlwaysStoppedAnimation(AppColors.primary),
+              ),
+            ],
+          ),
+        ),
+
+        // Flashcards
+        Expanded(
+          child: PageView.builder(
+            controller: _pageController,
+            onPageChanged: (index) {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
+            itemCount: vocabList.length,
+            itemBuilder: (context, index) {
+              final vocab = vocabList[index];
+              return FlashcardWidget(
+                word: vocab.word,
+                meaning: vocab.meaning,
+                bangla: vocab.banglaBikashom ?? vocab.banglaBikash,
+                isFlipped: _isFlipped[index],
+                onFlip: () {
+                  setState(() {
+                    _isFlipped[index] = !_isFlipped[index];
+                  });
+                },
+              );
+            },
+          ),
+        ),
+
+        // Navigation Buttons
+        Padding(
+          padding: const EdgeInsets.all(AppConstants.spacing16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ElevatedButton.icon(
+                onPressed: _currentIndex > 0
+                    ? () {
+                        _pageController.previousPage(
+                          duration: Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      }
+                    : null,
+                icon: Icon(Icons.arrow_back),
+                label: Text('Previous'),
+              ),
+              ElevatedButton.icon(
+                onPressed: _currentIndex < vocabList.length - 1
+                    ? () {
+                        _pageController.nextPage(
+                          duration: Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      }
+                    : null,
+                icon: Icon(Icons.arrow_forward),
+                label: Text('Next'),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
 
 class FlashcardWidget extends StatelessWidget {
-  final dynamic vocab;
+  final String word;
+  final String meaning;
+  final String? bangla;
   final bool isFlipped;
   final VoidCallback onFlip;
 
   const FlashcardWidget({
     Key? key,
-    required this.vocab,
+    required this.word,
+    required this.meaning,
+    this.bangla,
     required this.isFlipped,
     required this.onFlip,
   }) : super(key: key);
@@ -138,26 +179,24 @@ class FlashcardWidget extends StatelessWidget {
         child: GestureDetector(
           onTap: onFlip,
           child: AnimatedSwitcher(
-            duration: AppConstants.mediumDuration,
+            duration: Duration(milliseconds: 300),
             transitionBuilder: (child, animation) {
               return ScaleTransition(scale: animation, child: child);
             },
             child: CustomCard(
               key: ValueKey(isFlipped),
-              backgroundColor: isFlipped
-                  ? const Color(0xFFFBC02D)
-                  : const Color(0xFF0D47A1),
+              backgroundColor: isFlipped ? Color(0xFFFBC02D) : Color(0xFF0D47A1),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (!isFlipped) ...[
-                    const Text('Tap to reveal', style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                    )),
+                    const Text(
+                      'Tap to reveal',
+                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                    ),
                     const SizedBox(height: 24),
                     Text(
-                      vocab.word,
+                      word,
                       style: const TextStyle(
                         fontSize: 48,
                         fontWeight: FontWeight.bold,
@@ -167,7 +206,7 @@ class FlashcardWidget extends StatelessWidget {
                     ),
                   ] else ...[
                     Text(
-                      vocab.meaning,
+                      meaning,
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -175,41 +214,23 @@ class FlashcardWidget extends StatelessWidget {
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      '(${vocab.bangla})',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        color: Colors.black54,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black12,
-                        borderRadius:
-                            BorderRadius.circular(AppConstants.radiusSmall),
-                      ),
-                      child: Text(
-                        'Synonyms: ${vocab.synonyms.join(', ')}',
+                    if (bangla != null) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        '($bangla)',
                         style: const TextStyle(
-                          fontSize: 14,
+                          fontSize: 18,
                           color: Colors.black54,
                         ),
                         textAlign: TextAlign.center,
                       ),
-                    ),
+                    ]
                   ],
                   const SizedBox(height: 32),
-                  const Text('Tap to flip', style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                  )),
+                  const Text(
+                    'Tap to flip',
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
                 ],
               ),
             ),
