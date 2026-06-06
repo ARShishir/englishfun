@@ -4,30 +4,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:englishfun/services/supabase_service.dart';
 import 'package:englishfun/models/user_model.dart';
+import 'package:englishfun/models/vocabulary_model.dart';
+import 'package:englishfun/models/practice_model.dart';
+import 'package:englishfun/models/daily_streak_model.dart';
+import 'package:englishfun/models/user_progress_model.dart';
+import 'package:englishfun/models/user_favorite_model.dart';
+import 'package:englishfun/models/practice_attempt_model.dart';
+import 'package:englishfun/models/quiz_result_model.dart';
 
-// Providers for authentication state management
-
-// Current user auth state
+// Auth State
 final authStateProvider = StreamProvider<AuthState>((ref) {
   final supabase = SupabaseService();
   return supabase.client.auth.onAuthStateChange;
 });
 
-// Current authenticated user - gets the actual auth user
 final currentUserProvider = FutureProvider<User?>((ref) async {
   final supabase = SupabaseService();
   return supabase.client.auth.currentUser;
 });
 
-// Current user profile - fetches from database using current user ID
 final userProfileProvider = FutureProvider<UserModel?>((ref) async {
   try {
-    // Wait for the first auth state emission to ensure session is available
     final authState = await ref.read(authStateProvider.future);
-
     final supabase = SupabaseService();
-
-    // Prefer session user from authState, fallback to currentUser
     final sessionUser = authState.session?.user ?? supabase.client.auth.currentUser;
 
     if (sessionUser == null) {
@@ -35,21 +34,14 @@ final userProfileProvider = FutureProvider<UserModel?>((ref) async {
       return null;
     }
 
-    print('Fetching profile for user: ${sessionUser.id}');
-    final profile = await supabase.getUserProfile(sessionUser.id);
-
-    if (profile == null) {
-      print('User profile not found in database for user: ${sessionUser.id}');
-    }
-
-    return profile;
+    return await supabase.getUserProfile(sessionUser.id);
   } catch (e) {
     print('Error in userProfileProvider: $e');
     return null;
   }
 });
 
-// Authentication controller
+// Auth Controller
 final authControllerProvider = StateNotifierProvider<AuthController, AsyncValue<void>>((ref) {
   return AuthController(ref);
 });
@@ -60,7 +52,6 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
 
   AuthController(this.ref) : super(const AsyncValue.data(null));
 
-  // Sign up with email and password
   Future<void> signUp({
     required String email,
     required String password,
@@ -68,66 +59,42 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
   }) async {
     state = const AsyncValue.loading();
     try {
-      final response = await _supabaseService.signUp(
-        email: email,
-        password: password,
-        name: name,
-      );
-
-      if (response.user != null) {
-        state = const AsyncValue.data(null);
-        // Invalidate all auth-related providers
-        ref.invalidate(authStateProvider);
-        ref.invalidate(currentUserProvider);
-        ref.invalidate(userProfileProvider);
-      }
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-    }
-  }
-
-  // Sign in with email and password
-  Future<void> signIn({
-    required String email,
-    required String password,
-  }) async {
-    state = const AsyncValue.loading();
-    try {
-      final response = await _supabaseService.signIn(
-        email: email,
-        password: password,
-      );
-
-      if (response.user != null) {
-        state = const AsyncValue.data(null);
-        // Invalidate all auth-related providers to force refresh
-        ref.invalidate(authStateProvider);
-        ref.invalidate(currentUserProvider);
-        ref.invalidate(userProfileProvider);
-        
-        print('Sign in successful for user: ${response.user!.id}');
-      }
-    } catch (e, st) {
-      print('Sign in error: $e');
-      state = AsyncValue.error(e, st);
-    }
-  }
-
-  // Sign out
-  Future<void> signOut() async {
-    state = const AsyncValue.loading();
-    try {
-      await _supabaseService.signOut();
+      await _supabaseService.signUp(email: email, password: password, name: name);
       state = const AsyncValue.data(null);
       ref.invalidate(authStateProvider);
-      ref.invalidate(currentUserProvider);
       ref.invalidate(userProfileProvider);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }
   }
 
-  // Update user profile
+  Future<void> signIn({
+    required String email,
+    required String password,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      await _supabaseService.signIn(email: email, password: password);
+      state = const AsyncValue.data(null);
+      ref.invalidate(authStateProvider);
+      ref.invalidate(userProfileProvider);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+
+  Future<void> signOut() async {
+    state = const AsyncValue.loading();
+    try {
+      await _supabaseService.signOut();
+      state = const AsyncValue.data(null);
+      ref.invalidate(authStateProvider);
+      ref.invalidate(userProfileProvider);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+
   Future<void> updateProfile({
     required String userId,
     String? name,
@@ -154,29 +121,35 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
   }
 }
 
-// Vocabulary provider
-final vocabularyProvider = FutureProvider.family<List<dynamic>, String?>((ref, level) async {
+// Vocabulary Providers
+final vocabularyProvider = FutureProvider.family<List<VocabularyModel>, String?>((ref, level) async {
   final supabase = SupabaseService();
   return await supabase.getAllVocabulary(level: level);
 });
 
-// Search vocabulary provider
-final searchVocabularyProvider = FutureProvider.family<List<dynamic>, String>((ref, query) async {
+final searchVocabularyProvider =
+    FutureProvider.family<List<VocabularyModel>, String>((ref, query) async {
   final supabase = SupabaseService();
   return await supabase.searchVocabulary(query);
 });
 
-// Practice questions provider
-final practiceQuestionsProvider = FutureProvider.family<List<dynamic>, Map<String, String?>>((ref, params) async {
+// Practice Questions Providers
+final practiceQuestionsProvider =
+    FutureProvider.family<List<PracticeQuestion>, Map<String, String?>>((ref, params) async {
   final supabase = SupabaseService();
-  return await supabase.getPracticeQuestions(
-    type: params['type'],
-    level: params['level'],
-  );
+  return await supabase.getPracticeQuestions(type: params['type'], level: params['level']);
 });
 
-// User progress provider
-final userProgressProvider = FutureProvider.family<Map<String, dynamic>?, Map<String, String>>((ref, params) async {
+// Daily Streaks Providers
+final dailyStreakProvider =
+    FutureProvider.family<DailyStreakModel?, String>((ref, userId) async {
+  final supabase = SupabaseService();
+  return await supabase.getDailyStreak(userId);
+});
+
+// User Progress Providers
+final userProgressProvider = FutureProvider.family<UserProgressModel?, Map<String, String>>(
+    (ref, params) async {
   final supabase = SupabaseService();
   return await supabase.getUserProgress(
     userId: params['userId']!,
@@ -184,14 +157,29 @@ final userProgressProvider = FutureProvider.family<Map<String, dynamic>?, Map<St
   );
 });
 
-// User favorites provider
-final userFavoritesProvider = FutureProvider.family<List<String>, String>((ref, userId) async {
+final userAllProgressProvider =
+    FutureProvider.family<List<UserProgressModel>, String>((ref, userId) async {
+  final supabase = SupabaseService();
+  return await supabase.getUserAllProgress(userId);
+});
+
+// User Favorites Providers
+final userFavoritesProvider =
+    FutureProvider.family<List<UserFavoriteModel>, String>((ref, userId) async {
   final supabase = SupabaseService();
   return await supabase.getUserFavorites(userId);
 });
 
-// Daily streak provider
-final dailyStreakProvider = FutureProvider.family<Map<String, dynamic>?, String>((ref, userId) async {
+// Practice Attempts Providers
+final practiceAttemptsProvider = FutureProvider.family<List<PracticeAttemptModel>, String>(
+    (ref, userId) async {
   final supabase = SupabaseService();
-  return await supabase.getDailyStreak(userId);
+  return await supabase.getPracticeAttempts(userId: userId);
+});
+
+// Quiz Results Providers
+final quizResultsProvider =
+    FutureProvider.family<List<QuizResultModel>, String>((ref, userId) async {
+  final supabase = SupabaseService();
+  return await supabase.getUserQuizResults(userId);
 });

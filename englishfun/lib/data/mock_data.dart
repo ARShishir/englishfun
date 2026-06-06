@@ -13,6 +13,8 @@ class MockData {
     dailyStreak: 7,
     accuracy: 82.0,
     totalXP: 320,
+    createdAt: DateTime.now().subtract(const Duration(days: 30)),
+    updatedAt: DateTime.now(),
   );
 
   static final List<VocabularyModel> vocabularyList = [
@@ -25,6 +27,7 @@ class MockData {
       synonyms: ['Enhance', 'Develop', 'Better'],
       examples: ['I want to improve my English.', 'The weather improved yesterday.'],
       level: 'Beginner',
+      createdAt: DateTime.now(),
     ),
     VocabularyModel(
       id: '2',
@@ -35,6 +38,7 @@ class MockData {
       synonyms: ['Determined', 'Steadfast', 'Dedicated'],
       examples: ['He is persistent in his efforts.'],
       level: 'Intermediate',
+      createdAt: DateTime.now(),
     ),
     VocabularyModel(
       id: '3',
@@ -45,6 +49,7 @@ class MockData {
       synonyms: ['Articulate', 'Fluent', 'Expressive'],
       examples: ['She gave an eloquent speech at the conference.'],
       level: 'Intermediate',
+      createdAt: DateTime.now(),
     ),
     VocabularyModel(
       id: '4',
@@ -55,6 +60,7 @@ class MockData {
       synonyms: ['Expect', 'Foresee', 'Predict'],
       examples: ['I anticipate your arrival tomorrow.'],
       level: 'Beginner',
+      createdAt: DateTime.now(),
     ),
     VocabularyModel(
       id: '5',
@@ -65,6 +71,7 @@ class MockData {
       synonyms: ['Careful', 'Precise', 'Thorough'],
       examples: ['She is meticulous in her work.'],
       level: 'Intermediate',
+      createdAt: DateTime.now(),
     ),
     VocabularyModel(
       id: '6',
@@ -75,6 +82,7 @@ class MockData {
       synonyms: ['Kind', 'Generous', 'Charitable'],
       examples: ['A benevolent donor helped the charity.'],
       level: 'Intermediate',
+      createdAt: DateTime.now(),
     ),
     VocabularyModel(
       id: '7',
@@ -85,6 +93,7 @@ class MockData {
       synonyms: ['Practical', 'Realistic', 'Sensible'],
       examples: ['She took a pragmatic approach to the problem.'],
       level: 'Intermediate',
+      createdAt: DateTime.now(),
     ),
     VocabularyModel(
       id: '8',
@@ -95,6 +104,7 @@ class MockData {
       synonyms: ['Strong', 'Tough', 'Flexible'],
       examples: ['He proved to be resilient during hard times.'],
       level: 'Beginner',
+      createdAt: DateTime.now(),
     ),
     VocabularyModel(
       id: '9',
@@ -105,6 +115,7 @@ class MockData {
       synonyms: ['Clear', 'Understandable', 'Transparent'],
       examples: ['The teacher gave a lucid explanation.'],
       level: 'Intermediate',
+      createdAt: DateTime.now(),
     ),
     VocabularyModel(
       id: '10',
@@ -115,6 +126,7 @@ class MockData {
       synonyms: ['Transient', 'Fleeting', 'Temporary'],
       examples: ['Beauty can be ephemeral.'],
       level: 'Intermediate',
+      createdAt: DateTime.now(),
     ),
   ];
 
@@ -126,6 +138,9 @@ class MockData {
       options: ['tomorrow', 'finish', 'report', 'by', 'have to', 'I'],
       correctAnswer: 'I have to finish the report by tomorrow',
       explanation: 'Subject + verb + object + time expression',
+      level: 'Beginner',
+      vocabularyId: '1',
+      createdAt: DateTime.now(),
     ),
     PracticeQuestion(
       id: '2',
@@ -134,6 +149,9 @@ class MockData {
       options: ['go', 'went', 'going', 'goes'],
       correctAnswer: 'went',
       explanation: 'Past tense is needed for "yesterday"',
+      level: 'Beginner',
+      vocabularyId: '1',
+      createdAt: DateTime.now(),
     ),
     PracticeQuestion(
       id: '3',
@@ -142,6 +160,9 @@ class MockData {
       options: ['Recieve', 'Receive', 'Recive', 'Receeve'],
       correctAnswer: 'Receive',
       explanation: '"i" before "e" except after "c"',
+      level: 'Beginner',
+      vocabularyId: '1',
+      createdAt: DateTime.now(),
     ),
     PracticeQuestion(
       id: '4',
@@ -150,6 +171,9 @@ class MockData {
       options: ['can', 'could', 'will', 'should'],
       correctAnswer: 'can',
       explanation: 'Present ability is expressed with "can"',
+      level: 'Intermediate',
+      vocabularyId: '2',
+      createdAt: DateTime.now(),
     ),
     PracticeQuestion(
       id: '5',
@@ -158,6 +182,9 @@ class MockData {
       options: ['does', 'work', 'he', 'where'],
       correctAnswer: 'Where does he work?',
       explanation: 'Question word + auxiliary + subject + main verb',
+      level: 'Intermediate',
+      vocabularyId: '2',
+      createdAt: DateTime.now(),
     ),
   ];
 
