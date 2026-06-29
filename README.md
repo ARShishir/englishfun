@@ -110,16 +110,6 @@ flutter analyze
 ```bash
 flutter test
 ```
-## 📱 Screenshots
-<img width="493" height="912" alt="1" src="https://github.com/user-attachments/assets/f53a64e4-8ca6-4077-9b63-98546b328f5c" /></br>
-<img width="496" height="913" alt="2" src="https://github.com/user-attachments/assets/64363269-9838-46fb-9341-974728b6b3a2" /></br>
-<img width="491" height="912" alt="3" src="https://github.com/user-attachments/assets/ae40c36b-0964-4782-aac6-92e2d6f4408c" /></br>
-<img width="494" height="909" alt="4" src="https://github.com/user-attachments/assets/78d214fa-d721-44e3-b283-dac268afd878" /></br>
-<img width="494" height="909" alt="5" src="https://github.com/user-attachments/assets/e32817af-01da-401c-b26f-43fb8df1094e" /></br>
-<img width="494" height="908" alt="6" src="https://github.com/user-attachments/assets/2ac7a881-bbfc-47f7-ae33-1b90dc39ce94" /></br>
-<img width="496" height="910" alt="7" src="https://github.com/user-attachments/assets/33dbcbb4-1a75-45e2-835d-23551005746c" /></br>
-<img width="494" height="905" alt="8" src="https://github.com/user-attachments/assets/074aff9d-d1fb-415f-bb4e-b30870f31da2" /></br>
-<img width="494" height="906" alt="9" src="https://github.com/user-attachments/assets/6e3d4031-fa8c-4c2d-a940-d51a1c847975" /></br>
 
 ## Documentation
 
